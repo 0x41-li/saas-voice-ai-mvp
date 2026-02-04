@@ -1,5 +1,7 @@
 "use client";
 
+import { ReactNode } from "react";
+
 export type Status = "idle" | "recording" | "processing" | "playing" | "error";
 
 interface StatusIndicatorProps {
@@ -7,7 +9,7 @@ interface StatusIndicatorProps {
   errorMessage?: string;
 }
 
-const statusConfig: Record<Status, { label: string; color: string; icon: JSX.Element }> = {
+const statusConfig: Record<Status, { label: string; color: string; icon: ReactNode }> = {
   idle: {
     label: "Ready",
     color: "text-gray-500 dark:text-gray-400",
