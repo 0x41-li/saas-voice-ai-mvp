@@ -18,6 +18,11 @@ export const metadata: Metadata = {
     "AI-powered voice assistant. Hold to speak, get instant voice responses. Built with OpenAI.",
   keywords: ["voice assistant", "AI", "speech to text", "text to speech", "OpenAI"],
   authors: [{ name: "SaaS Voice AI" }],
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",
+  },
   openGraph: {
     title: "SaaS Voice AI - Voice Assistant",
     description:
