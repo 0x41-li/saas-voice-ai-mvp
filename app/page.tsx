@@ -117,7 +117,7 @@ export default function Home() {
   const isDisabled = status === "processing" || status === "playing";
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-linear-to-br from-violet-950 via-slate-900 to-slate-950 p-4">
+    <div className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden bg-linear-to-br from-violet-950 via-slate-900 to-slate-950 p-4">
       {/* Animated background orbs */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-purple-500/30 blur-3xl animate-pulse" />
