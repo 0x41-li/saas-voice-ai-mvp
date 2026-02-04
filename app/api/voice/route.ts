@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI, { toFile } from "openai";
 
+export const runtime = "edge";
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -23,12 +25,13 @@ export async function POST(request: NextRequest) {
     const extension = format === "mp4" ? "mp4" : format === "wav" ? "wav" : "webm";
     const mimeType = format === "mp4" ? "audio/mp4" : format === "wav" ? "audio/wav" : "audio/webm";
 
-    // Step 1: Transcribe audio using Whisper (accepts webm, mp4, wav, etc.)
+    // Transcribe audio using Whisper (accepts webm, mp4, wav, etc.)
     const audioFile = await toFile(audioBuffer, `audio.${extension}`, { type: mimeType });
 
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,
       model: "whisper-1",
+      language: "en",
     });
 
     if (!transcription.text || transcription.text.trim() === "") {
@@ -38,7 +41,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 2: Get response from GPT-4o
+    // Get response from GPT-4o
     const chatResponse = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -63,7 +66,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 3: Convert response to speech using TTS
+    // Convert response to speech using TTS
     const ttsResponse = await openai.audio.speech.create({
       model: "tts-1",
       voice: "alloy",
