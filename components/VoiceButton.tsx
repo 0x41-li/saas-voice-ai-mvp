@@ -142,37 +142,52 @@ export default function VoiceButton({
   const progressPercent = (duration / maxDuration) * 100;
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center gap-6">
       <div className="relative">
+        {/* Outer glow effect when recording */}
+        {isRecording && (
+          <>
+            <div className="absolute inset-0 rounded-full bg-violet-500/40 blur-xl animate-pulse scale-150" />
+            <div className="absolute inset-0 rounded-full bg-pink-500/30 blur-2xl animate-pulse scale-175 delay-75" />
+          </>
+        )}
+
         {/* Progress ring */}
         <svg
-          className="absolute inset-0 -rotate-90 w-32 h-32"
-          viewBox="0 0 128 128"
+          className="absolute inset-0 -rotate-90 w-36 h-36"
+          viewBox="0 0 144 144"
         >
           <circle
-            cx="64"
-            cy="64"
-            r="58"
+            cx="72"
+            cy="72"
+            r="66"
             fill="none"
             stroke="currentColor"
-            strokeWidth="4"
-            className="text-gray-200 dark:text-gray-700"
+            strokeWidth="3"
+            className="text-white/10"
           />
           {isRecording && (
             <circle
-              cx="64"
-              cy="64"
-              r="58"
+              cx="72"
+              cy="72"
+              r="66"
               fill="none"
-              stroke="currentColor"
-              strokeWidth="4"
-              strokeDasharray={`${progressPercent * 3.64} 364`}
-              className="text-red-500 transition-all duration-100"
+              stroke="url(#gradient)"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeDasharray={`${progressPercent * 4.14} 414`}
+              className="transition-all duration-100"
             />
           )}
+          <defs>
+            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#8B5CF6" />
+              <stop offset="100%" stopColor="#EC4899" />
+            </linearGradient>
+          </defs>
         </svg>
 
-        {/* Main button */}
+        {/* Main button with glassmorphism */}
         <button
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
@@ -180,25 +195,34 @@ export default function VoiceButton({
           onContextMenu={(e) => e.preventDefault()}
           disabled={isDisabled}
           className={`
-            relative w-32 h-32 rounded-full
+            relative w-36 h-36 rounded-full
             flex items-center justify-center
-            transition-all duration-200
+            transition-all duration-300 ease-out
             touch-none select-none
+            border border-white/20
+            shadow-lg shadow-black/20
             ${
               isDisabled
-                ? "bg-gray-300 dark:bg-gray-600 cursor-not-allowed"
+                ? "bg-white/5 cursor-not-allowed opacity-50"
                 : isRecording
-                ? "bg-red-500 scale-110"
-                : "bg-blue-500 hover:bg-blue-600 active:scale-95"
+                ? "bg-linear-to-br from-violet-500 to-pink-500 scale-105 shadow-violet-500/30 shadow-2xl"
+                : "bg-white/10 backdrop-blur-sm hover:bg-white/15 hover:scale-102 active:scale-95"
             }
           `}
         >
+          {/* Inner glow */}
+          {!isDisabled && !isRecording && (
+            <div className="absolute inset-2 rounded-full bg-linear-to-br from-violet-500/5 to-transparent" />
+          )}
+
           {/* Mic icon */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
-            fill="white"
-            className={`w-12 h-12 ${isRecording ? "animate-pulse" : ""}`}
+            fill="currentColor"
+            className={`relative z-10 w-14 h-14 transition-all duration-300 ${
+              isRecording ? "text-white scale-110" : "text-white/80"
+            }`}
           >
             <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
             <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
@@ -208,21 +232,21 @@ export default function VoiceButton({
 
       {/* Duration display */}
       {isRecording && (
-        <div className="text-lg font-mono text-red-500">
+        <div className="text-lg font-mono bg-linear-to-r from-violet-400 to-pink-400 bg-clip-text text-transparent font-semibold">
           {duration.toFixed(1)}s / {maxDuration}s
         </div>
       )}
 
       {/* Instructions */}
       {!isRecording && !isDisabled && (
-        <p className="text-gray-500 dark:text-gray-400 text-sm">
+        <p className="text-white/40 text-sm">
           Hold to record
         </p>
       )}
 
       {/* Permission denied message */}
       {permissionDenied && (
-        <p className="text-red-500 text-sm text-center max-w-xs">
+        <p className="text-pink-400 text-sm text-center max-w-xs">
           Microphone access denied. Please enable it in your browser settings.
         </p>
       )}

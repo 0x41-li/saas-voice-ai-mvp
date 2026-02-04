@@ -117,14 +117,22 @@ export default function Home() {
   const isDisabled = status === "processing" || status === "playing";
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-linear-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black p-4">
-      <main className="flex flex-col items-center gap-8">
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-linear-to-br from-violet-950 via-slate-900 to-slate-950 p-4">
+      {/* Animated background orbs */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-purple-500/30 blur-3xl animate-pulse" />
+        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-blue-500/20 blur-3xl animate-pulse delay-1000" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-violet-600/10 blur-3xl" />
+      </div>
+
+      {/* Main content */}
+      <main className="relative z-10 flex flex-col items-center gap-8">
         {/* Title */}
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
             Voice Assistant
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
+          <p className="text-white/60 text-sm">
             Hold the button to speak
           </p>
         </div>
