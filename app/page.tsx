@@ -8,6 +8,7 @@ export default function Home() {
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioPrimedRef = useRef(false);
 
   const blobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -30,7 +31,13 @@ export default function Home() {
 
   const playAudio = useCallback(async (base64Audio: string, format: string = "mp3") => {
     try {
-      setStatus("playing");
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      // Clean up previous blob URL
+      if (audio.src && audio.src.startsWith("blob:")) {
+        URL.revokeObjectURL(audio.src);
+      }
 
       // Decode base64 to blob
       const audioData = atob(base64Audio);
@@ -42,27 +49,60 @@ export default function Home() {
       const audioBlob = new Blob([audioArray], { type: mimeType });
       const audioUrl = URL.createObjectURL(audioBlob);
 
-      // Create and play audio
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
+      // Reuse the SAME primed element — critical for iOS Safari
+      audio.muted = false;
+      audio.src = audioUrl;
 
       audio.onended = () => {
         URL.revokeObjectURL(audioUrl);
+        audio.onended = null;
+        audio.onerror = null;
+        audio.src = "";
+        audio.load();
+        audioRef.current = null;
+        audioPrimedRef.current = false;
         setStatus("idle");
       };
 
       audio.onerror = () => {
         URL.revokeObjectURL(audioUrl);
+        audio.onended = null;
+        audio.onerror = null;
+        audio.src = "";
+        audio.load();
+        audioRef.current = null;
+        audioPrimedRef.current = false;
         setStatus("error");
         setErrorMessage("Failed to play audio response");
       };
 
+      setStatus("playing");
       await audio.play();
     } catch (error) {
       console.error("Playback error:", error);
       setStatus("error");
       setErrorMessage("Could not play audio. Tap to retry.");
     }
+  }, []);
+
+  // Prime audio element during user gesture (onPressStart).
+  // iOS Safari requires .play() to be called on an <audio> element within
+  // a user gesture call stack. Once primed, the same element can be reused
+  // for playback from async callbacks (after fetch, etc).
+  const primeAudio = useCallback(() => {
+    if (audioPrimedRef.current) return;
+
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+    }
+    const audio = audioRef.current;
+    audio.onended = null;
+    audio.onerror = null;
+    audio.muted = true;
+    audio.src = "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYoRwmHAAAAAAD/+1DEAAAHAAGf9AAAIgAANIAAAARMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7UMQbgAAADSAAAAAAAAANIAAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ==";
+    audio.play().then(() => {
+      audioPrimedRef.current = true;
+    }).catch(() => {});
   }, []);
 
   const handleRecordingComplete = useCallback(
@@ -140,6 +180,7 @@ export default function Home() {
         {/* Voice Button */}
         <VoiceButton
           onRecordingComplete={handleRecordingComplete}
+          onPressStart={primeAudio}
           isDisabled={isDisabled}
           maxDuration={20}
         />

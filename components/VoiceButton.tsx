@@ -1,15 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePress } from "@react-aria/interactions";
 
 interface VoiceButtonProps {
   onRecordingComplete: (audioBlob: Blob) => void;
+  onPressStart?: () => void;
   isDisabled: boolean;
   maxDuration?: number;
 }
 
 export default function VoiceButton({
   onRecordingComplete,
+  onPressStart: onPressStartCallback,
   isDisabled,
   maxDuration = 20,
 }: VoiceButtonProps) {
@@ -22,6 +25,7 @@ export default function VoiceButton({
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
+  const isPressedRef = useRef(false);
 
   const getMimeType = (): string => {
     const types = [
@@ -51,11 +55,17 @@ export default function VoiceButton({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
         },
       });
+
+      // User released button during permission prompt
+      if (!isPressedRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
 
       streamRef.current = stream;
       chunksRef.current = [];
@@ -120,24 +130,20 @@ export default function VoiceButton({
     };
   }, []);
 
-  const handlePointerDown = (e: React.PointerEvent) => {
-    e.preventDefault();
-    if (!isDisabled && !isRecording) {
+  const { pressProps } = usePress({
+    isDisabled,
+    onPressStart: () => {
+      isPressedRef.current = true;
+      onPressStartCallback?.();
       startRecording();
-    }
-  };
-
-  const handlePointerUp = () => {
-    if (isRecording) {
-      stopRecording();
-    }
-  };
-
-  const handlePointerLeave = () => {
-    if (isRecording) {
-      stopRecording();
-    }
-  };
+    },
+    onPressEnd: () => {
+      isPressedRef.current = false;
+      if (mediaRecorderRef.current?.state === "recording") {
+        stopRecording();
+      }
+    },
+  });
 
   const progressPercent = (duration / maxDuration) * 100;
 
@@ -189,16 +195,13 @@ export default function VoiceButton({
 
         {/* Main button with glassmorphism */}
         <button
-          onPointerDown={handlePointerDown}
-          onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerLeave}
+          {...pressProps}
           onContextMenu={(e) => e.preventDefault()}
-          disabled={isDisabled}
           className={`
             relative w-36 h-36 rounded-full
             flex items-center justify-center
             transition-all duration-300 ease-out
-            touch-none select-none
+            select-none
             border border-white/20
             shadow-lg shadow-black/20
             ${
