@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usePress } from "@react-aria/interactions";
 
 interface VoiceButtonProps {
   onRecordingComplete: (audioBlob: Blob) => void;
@@ -26,6 +25,7 @@ export default function VoiceButton({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
   const isPressedRef = useRef(false);
+  const pointerIdRef = useRef<number | null>(null);
 
   const getMimeType = (): string => {
     const types = [
@@ -118,6 +118,70 @@ export default function VoiceButton({
     }
   }, [isDisabled, maxDuration, onRecordingComplete, stopRecording]);
 
+  const handlePressEnd = useCallback(() => {
+    if (!isPressedRef.current) return;
+    isPressedRef.current = false;
+    pointerIdRef.current = null;
+    if (mediaRecorderRef.current?.state === "recording") {
+      stopRecording();
+    }
+  }, [stopRecording]);
+
+  // Listen for pointer-up on the entire document so that lifting the
+  // finger *anywhere* on the screen ends the recording.
+  // We intentionally ignore pointercancel — Chrome fires spurious cancels
+  // on touch-action:none elements (text selection, multi-touch, etc.)
+  // and the max-duration timer is our safety net.
+  useEffect(() => {
+    const onPointerUp = (e: PointerEvent) => {
+      if (pointerIdRef.current !== null && e.pointerId === pointerIdRef.current) {
+        handlePressEnd();
+      }
+    };
+
+    // touchend is a fallback: if Chrome fires pointercancel, it won't
+    // fire pointerup — but touchend still fires when the finger lifts.
+    const onTouchEnd = () => {
+      if (isPressedRef.current) {
+        handlePressEnd();
+      }
+    };
+
+    document.addEventListener("pointerup", onPointerUp);
+    document.addEventListener("touchend", onTouchEnd);
+
+    return () => {
+      document.removeEventListener("pointerup", onPointerUp);
+      document.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [handlePressEnd]);
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (isDisabled) return;
+      e.preventDefault();
+      pointerIdRef.current = e.pointerId;
+      isPressedRef.current = true;
+      onPressStartCallback?.();
+      startRecording();
+    },
+    [isDisabled, onPressStartCallback, startRecording]
+  );
+
+  // When the page loses focus (permission dialog, app switch, incoming call,
+  // notification, etc.) the finger is no longer holding the button.
+  // Safari swallows pointerup/touchend during its permission dialog,
+  // so this is the only reliable way to reset press state in that case.
+  useEffect(() => {
+    const onBlur = () => {
+      isPressedRef.current = false;
+      pointerIdRef.current = null;
+    };
+
+    window.addEventListener("blur", onBlur);
+    return () => window.removeEventListener("blur", onBlur);
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -129,21 +193,6 @@ export default function VoiceButton({
       }
     };
   }, []);
-
-  const { pressProps } = usePress({
-    isDisabled,
-    onPressStart: () => {
-      isPressedRef.current = true;
-      onPressStartCallback?.();
-      startRecording();
-    },
-    onPressEnd: () => {
-      isPressedRef.current = false;
-      if (mediaRecorderRef.current?.state === "recording") {
-        stopRecording();
-      }
-    },
-  });
 
   const progressPercent = (duration / maxDuration) * 100;
 
@@ -195,13 +244,13 @@ export default function VoiceButton({
 
         {/* Main button with glassmorphism */}
         <button
-          {...pressProps}
+          onPointerDown={handlePointerDown}
           onContextMenu={(e) => e.preventDefault()}
           className={`
             relative w-36 h-36 rounded-full
             flex items-center justify-center
             transition-all duration-300 ease-out
-            select-none
+            select-none touch-none
             border border-white/20
             shadow-lg shadow-black/20
             ${
