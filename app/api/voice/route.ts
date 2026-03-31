@@ -87,7 +87,6 @@ export async function POST(request: NextRequest) {
       response: responseText,
     });
   } catch (error) {
-    console.error("Voice API error:", error);
     Sentry.captureException(error, {
       tags: { component: "voice-api" },
     });

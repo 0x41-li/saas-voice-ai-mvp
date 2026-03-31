@@ -91,7 +91,6 @@ export default function Home() {
       setStatus("playing");
       await audio.play();
     } catch (error) {
-      console.error("Playback error:", error);
       Sentry.captureException(error, {
         tags: { component: "voice-playback" },
       });
@@ -163,7 +162,6 @@ export default function Home() {
           throw new Error("No audio response received");
         }
       } catch (error) {
-        console.error("Error:", error);
         Sentry.captureException(error, {
           tags: { component: "voice-flow" },
         });

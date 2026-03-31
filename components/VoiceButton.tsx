@@ -112,7 +112,6 @@ export default function VoiceButton({
         }
       }, 100);
     } catch (error) {
-      console.error("Failed to start recording:", error);
       Sentry.captureException(error, {
         tags: { component: "voice-recording" },
       });
