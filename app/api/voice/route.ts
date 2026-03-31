@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI, { toFile } from "openai";
+import * as Sentry from "@sentry/nextjs";
+
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
@@ -86,6 +88,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Voice API error:", error);
+    Sentry.captureException(error, {
+      tags: { component: "voice-api" },
+    });
+
     if (error instanceof OpenAI.APIError) {
       return NextResponse.json(
         { error: error.message },

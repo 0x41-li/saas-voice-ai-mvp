@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import * as Sentry from "@sentry/nextjs";
 import VoiceButton from "@/components/VoiceButton";
 import StatusIndicator, { Status } from "@/components/StatusIndicator";
 
@@ -32,7 +33,13 @@ export default function Home() {
   const playAudio = useCallback(async (base64Audio: string, format: string = "mp3") => {
     try {
       const audio = audioRef.current;
-      if (!audio) return;
+      if (!audio) {
+        Sentry.captureMessage("Audio element not available for playback", {
+          level: "warning",
+          tags: { component: "voice-playback" },
+        });
+        return;
+      }
 
       // Clean up previous blob URL
       if (audio.src && audio.src.startsWith("blob:")) {
@@ -65,6 +72,11 @@ export default function Home() {
       };
 
       audio.onerror = () => {
+        Sentry.captureMessage("Audio element playback error", {
+          level: "error",
+          tags: { component: "voice-playback" },
+          extra: { format, audioSize: base64Audio.length },
+        });
         URL.revokeObjectURL(audioUrl);
         audio.onended = null;
         audio.onerror = null;
@@ -80,6 +92,9 @@ export default function Home() {
       await audio.play();
     } catch (error) {
       console.error("Playback error:", error);
+      Sentry.captureException(error, {
+        tags: { component: "voice-playback" },
+      });
       setStatus("error");
       setErrorMessage("Could not play audio. Tap to retry.");
     }
@@ -102,7 +117,11 @@ export default function Home() {
     audio.src = "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYoRwmHAAAAAAD/+1DEAAAHAAGf9AAAIgAANIAAAARMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7UMQbgAAADSAAAAAAAAANIAAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ==";
     audio.play().then(() => {
       audioPrimedRef.current = true;
-    }).catch(() => {});
+    }).catch((err) => {
+      Sentry.captureException(err, {
+        tags: { component: "voice-playback", action: "prime-audio" },
+      });
+    });
   }, []);
 
   const handleRecordingComplete = useCallback(
@@ -145,6 +164,9 @@ export default function Home() {
         }
       } catch (error) {
         console.error("Error:", error);
+        Sentry.captureException(error, {
+          tags: { component: "voice-flow" },
+        });
         setStatus("error");
         setErrorMessage(
           error instanceof Error ? error.message : "Something went wrong"

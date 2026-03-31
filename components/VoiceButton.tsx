@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 interface VoiceButtonProps {
   onRecordingComplete: (audioBlob: Blob) => void;
@@ -112,6 +113,9 @@ export default function VoiceButton({
       }, 100);
     } catch (error) {
       console.error("Failed to start recording:", error);
+      Sentry.captureException(error, {
+        tags: { component: "voice-recording" },
+      });
       if ((error as Error).name === "NotAllowedError") {
         setPermissionDenied(true);
       }
