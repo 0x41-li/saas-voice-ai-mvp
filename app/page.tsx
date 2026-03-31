@@ -126,8 +126,14 @@ export default function Home() {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to process voice");
+          let message = "Failed to process voice";
+          try {
+            const errorData = await response.json();
+            message = errorData.error || message;
+          } catch {
+            // Response wasn't JSON (e.g. timeout or platform error)
+          }
+          throw new Error(message);
         }
 
         const data = await response.json();

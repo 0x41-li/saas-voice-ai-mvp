@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI, { toFile } from "openai";
-
-export const runtime = "edge";
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -86,7 +86,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Voice API error:", error);
-
     if (error instanceof OpenAI.APIError) {
       return NextResponse.json(
         { error: error.message },
